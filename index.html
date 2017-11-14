@@ -245,7 +245,7 @@
       <div class="dark-box"></div>
       <div class="content">
         <h1 id='introduction'>Introduction</h1>
-<p>This document specifies the API for using the MetaCloud service.</p>
+<p>This document specifies the API for using the SpatialCanvas service.</p>
 <h1 id='install'>Install</h1>
 <blockquote>
 <p>In your Podfile, add the following sources</p>
@@ -256,25 +256,20 @@ source 'https://github.com/xmartlabs/cocoapods-specs.git'
 <blockquote>
 <p>And then, add the following line to your targets of interest:</p>
 </blockquote>
-<pre class="highlight plaintext"><code>pod 'MetaCloud', '~&gt; 0.1'
+<pre class="highlight plaintext"><code>pod 'SpatialCanvas', '~&gt; 0.3.1'
 </code></pre>
 <p>For now, the SDK only support Cocoapods.</p>
 <h1 id='usage'>Usage</h1><h2 id='behaviour'>Behaviour</h2>
 <blockquote>
-<blockquote>
-<p>The ConnectionManager ip &amp; port is a temporary configuration. It allow algorithms to run on the C++ Server.</p>
-</blockquote>
-
 <p>Initialize the SDK in your AppDelegate</p>
 </blockquote>
-<pre class="highlight swift tab-swift"><code><span class="kd">import</span> <span class="kt">MetaCloud</span>
+<pre class="highlight swift tab-swift"><code><span class="kd">import</span> <span class="kt">SpatialCanvas</span>
 
 <span class="kd">@UIApplicationMain</span>
 <span class="kd">class</span> <span class="kt">AppDelegate</span><span class="p">:</span> <span class="kt">UIResponder</span><span class="p">,</span> <span class="kt">UIApplicationDelegate</span> <span class="p">{</span>
 
     <span class="kd">func</span> <span class="nf">application</span><span class="p">(</span><span class="n">_</span> <span class="nv">application</span><span class="p">:</span> <span class="kt">UIApplication</span><span class="p">,</span> <span class="n">didFinishLaunchingWithOptions</span> <span class="nv">launchOptions</span><span class="p">:</span> <span class="p">[</span><span class="kt">UIApplicationLaunchOptionsKey</span><span class="p">:</span> <span class="kt">Any</span><span class="p">]?)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span> <span class="p">{</span>
-        <span class="kt">MetaCloud</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">initialize</span><span class="p">()</span>
-        <span class="kt">ConnectionManager</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">ipAndPort</span> <span class="o">=</span> <span class="p">(</span><span class="nv">ip</span><span class="p">:</span> <span class="s">"192.168.181.46"</span><span class="p">,</span> <span class="nv">port</span><span class="p">:</span> <span class="mi">8000</span><span class="p">)</span> <span class="c1">// Just for now</span>
+        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">initialize</span><span class="p">(</span><span class="nv">environment</span><span class="p">:</span> <span class="o">.</span><span class="n">staging</span><span class="p">)</span> <span class="c1">// or .production</span>
         <span class="k">return</span> <span class="kc">true</span>
     <span class="p">}</span>
 
@@ -284,94 +279,125 @@ source 'https://github.com/xmartlabs/cocoapods-specs.git'
 <p>In your ViewController:</p>
 </blockquote>
 <pre class="highlight swift tab-swift"><code><span class="kd">import</span> <span class="kt">ARKit</span>
-<span class="kd">import</span> <span class="kt">MetaCloud</span>
+<span class="kd">import</span> <span class="kt">SpatialCanvas</span>
 <span class="kd">import</span> <span class="kt">UKit</span>
 
 <span class="kd">class</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">UIViewController</span> <span class="p">{</span>
 
     <span class="kd">@IBOutlet</span> <span class="k">var</span> <span class="nv">sceneView</span><span class="p">:</span> <span class="kt">ARSCNView</span><span class="o">!</span>
 
-    <span class="k">var</span> <span class="nv">metaCloudSession</span><span class="p">:</span> <span class="kt">MetaCloudSession</span><span class="p">?</span>
+    <span class="k">var</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">?</span>
 
     <span class="k">override</span> <span class="kd">func</span> <span class="nf">viewDidLoad</span><span class="p">()</span> <span class="p">{</span>
         <span class="k">super</span><span class="o">.</span><span class="nf">viewDidLoad</span><span class="p">()</span>
 
-        <span class="kt">MetaCloud</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
+        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
+        <span class="nf">getRooms</span><span class="p">()</span>
     <span class="p">}</span>
 
     <span class="k">override</span> <span class="kd">func</span> <span class="nf">viewWillAppear</span><span class="p">(</span><span class="n">_</span> <span class="nv">animated</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">super</span><span class="o">.</span><span class="nf">viewWillAppear</span><span class="p">(</span><span class="n">animated</span><span class="p">)</span>
-        <span class="kt">MetaCloud</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">run</span><span class="p">(</span><span class="nv">scene</span><span class="p">:</span> <span class="n">sceneView</span><span class="p">)</span>
+        <span class="k">let</span> <span class="nv">configuration</span> <span class="o">=</span> <span class="kt">ARWorldTrackingConfiguration</span><span class="p">()</span>
+        <span class="n">configuration</span><span class="o">.</span><span class="n">planeDetection</span> <span class="o">=</span> <span class="o">.</span><span class="n">horizontal</span>
+        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">run</span><span class="p">(</span><span class="nv">scene</span><span class="p">:</span> <span class="n">sceneView</span><span class="p">,</span> <span class="nv">with</span><span class="p">:</span> <span class="n">configuration</span><span class="p">)</span>
     <span class="p">}</span>
 
     <span class="k">override</span> <span class="kd">func</span> <span class="nf">viewWillDisappear</span><span class="p">(</span><span class="n">_</span> <span class="nv">animated</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">super</span><span class="o">.</span><span class="nf">viewWillDisappear</span><span class="p">(</span><span class="n">animated</span><span class="p">)</span>
 
-        <span class="n">sceneView</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="nf">pause</span><span class="p">()</span>
+        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">pause</span><span class="p">()</span>
     <span class="p">}</span>
 
     <span class="kd">@IBAction</span> <span class="kd">func</span> <span class="nf">insertObject</span><span class="p">(</span><span class="n">_</span> <span class="nv">sender</span><span class="p">:</span> <span class="kt">UIButton</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">let</span> <span class="nv">position</span><span class="p">:</span> <span class="n">float3</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="c1">// add your object to your sceneView</span>
-
-        <span class="c1">// add your object to the MetaCloudSession</span>
-        <span class="n">metaCloudSession</span><span class="p">?</span><span class="o">.</span><span class="nf">addObject</span><span class="p">(</span><span class="nv">position</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">ResultValue</span><span class="o">.</span><span class="n">handle</span> <span class="p">{</span>
+        <span class="c1">// add your object to the SpatialCanvasRoom, the SDK will notify this add operation by calling the SpatialCanvasRoomDelegate didAddObject method.</span>
+        <span class="n">spatialCanvasRoom</span><span class="p">?</span><span class="o">.</span><span class="nf">addObject</span><span class="p">(</span><span class="nv">position</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">ResultValue</span><span class="o">.</span><span class="n">handle</span> <span class="p">{</span>
             <span class="nf">debugPrint</span><span class="p">(</span><span class="s">"Object persisted </span><span class="se">\(</span><span class="nv">$0</span><span class="se">)</span><span class="s">"</span><span class="p">)</span>
         <span class="p">})</span>
     <span class="p">}</span>
 
-    <span class="c1">// If you want to reset the MetaCloud SDK.</span>
-    <span class="kd">@IBAction</span> <span class="kd">func</span> <span class="nf">resetButtonDidTouch</span><span class="p">(</span><span class="n">_</span> <span class="nv">sender</span><span class="p">:</span> <span class="kt">UIButton</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">metaCloudSession</span> <span class="o">=</span> <span class="kc">nil</span>
-        <span class="kt">MetaCloud</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">reset</span><span class="p">()</span>
+    <span class="kd">func</span> <span class="nf">getRooms</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">getNearRooms</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">result</span> <span class="k">in</span>
+            <span class="k">switch</span> <span class="n">result</span> <span class="p">{</span>
+            <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">success</span><span class="p">(</span><span class="n">rooms</span><span class="p">):</span>
+                <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">show</span><span class="p">(</span><span class="nv">rooms</span><span class="p">:</span> <span class="n">rooms</span><span class="p">)</span>
+            <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">error</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
+                <span class="c1">// show error</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
 
+    <span class="kd">func</span> <span class="nf">show</span><span class="p">(</span><span class="nv">rooms</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasRoomDescriptor</span><span class="p">])</span> <span class="p">{</span>
+        <span class="k">let</span> <span class="nv">alert</span> <span class="o">=</span> <span class="kt">UIAlertController</span><span class="p">(</span><span class="nv">title</span><span class="p">:</span> <span class="s">"Select a room"</span><span class="p">,</span> <span class="nv">message</span><span class="p">:</span> <span class="kc">nil</span><span class="p">,</span> <span class="nv">preferredStyle</span><span class="p">:</span> <span class="o">.</span><span class="n">actionSheet</span><span class="p">)</span>
+        <span class="n">alert</span><span class="o">.</span><span class="nf">addAction</span><span class="p">(</span><span class="kt">UIAlertAction</span><span class="p">(</span><span class="nv">title</span><span class="p">:</span> <span class="s">"Create new"</span><span class="p">,</span> <span class="nv">style</span><span class="p">:</span> <span class="o">.</span><span class="k">default</span><span class="p">,</span> <span class="nv">handler</span><span class="p">:</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">_</span> <span class="k">in</span>
+            <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">createNewRoom</span><span class="p">()</span>
+        <span class="p">}))</span>
+        <span class="n">rooms</span><span class="o">.</span><span class="n">forEach</span> <span class="p">{</span> <span class="n">s</span> <span class="k">in</span>
+            <span class="n">alert</span><span class="o">.</span><span class="nf">addAction</span><span class="p">(</span><span class="kt">UIAlertAction</span><span class="p">(</span><span class="nv">title</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nv">style</span><span class="p">:</span> <span class="o">.</span><span class="k">default</span><span class="p">,</span> <span class="nv">handler</span><span class="p">:</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">_</span> <span class="k">in</span>
+                <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">restoreRoom</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+            <span class="p">}))</span>
+        <span class="p">}</span>
+        <span class="nf">present</span><span class="p">(</span><span class="n">alert</span><span class="p">,</span> <span class="nv">animated</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kc">nil</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="kd">func</span> <span class="nf">restoreRoom</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">restoreRoom</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="n">id</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">ResultValue</span><span class="o">.</span><span class="n">handle</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="k">in</span>
+            <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">spatialCanvasRoom</span> <span class="o">=</span> <span class="nv">$0</span>
+            <span class="nv">$0</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
+            <span class="nv">$0</span><span class="o">.</span><span class="nf">startScan</span><span class="p">()</span>
+        <span class="p">})</span>
+    <span class="p">}</span>
+
+    <span class="kd">func</span> <span class="nf">createNewRoom</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">let</span> <span class="nv">roomScan</span> <span class="o">=</span> <span class="kt">RoomScan</span><span class="p">()</span>
+
+      <span class="c1">// perform a room scan by</span>
+      <span class="n">roomScan</span><span class="o">.</span><span class="nf">start</span><span class="p">()</span>
+
+      <span class="cm">/* let the user scan the room */</span>
+
+      <span class="n">roomScan</span><span class="o">.</span><span class="nf">stop</span><span class="p">()</span>
+      <span class="n">roomScan</span><span class="o">.</span><span class="nf">finish</span><span class="p">()</span>
+
+      <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">createRoom</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="s">"Office"</span><span class="p">,</span> <span class="nv">room</span><span class="p">:</span> <span class="n">roomScan</span><span class="p">)</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">result</span> <span class="k">in</span>
+          <span class="k">switch</span> <span class="n">result</span> <span class="p">{</span>
+          <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">success</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+              <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">spatialCanvasRoom</span> <span class="o">=</span> <span class="n">r</span>
+              <span class="n">r</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
+          <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">error</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
+              <span class="c1">// show error</span>
+          <span class="p">}</span>
+      <span class="p">}</span>
     <span class="p">}</span>
 
 <span class="p">}</span>
 </code></pre>
 <blockquote>
-<p>When setting you as the delegate of <code>MetaCloud.shared</code> instance, you will get notified about the following events:</p>
+<p>When setting you as the delegate of <code>SpatialCanvas.shared</code> instance, you will get notified about potential SDK errors and also you will receive all events from <code>ARSessionDelegate</code>.
+<code>SpatialCanvasDelegate</code> inherits from the <code>ARSessionDelegate</code> protocol.</p>
 </blockquote>
-<pre class="highlight swift tab-swift"><code><span class="kd">extension</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">MetaCloudDelegate</span> <span class="p">{</span>
-
-    <span class="c1">// Called when the SDK didn't find sessions associated with your GPS location.</span>
-    <span class="kd">func</span> <span class="nf">metaCloud</span><span class="p">(</span><span class="n">_</span> <span class="nv">metaCloud</span><span class="p">:</span> <span class="kt">MetaCloud</span><span class="p">,</span> <span class="n">didDetectNewSession</span> <span class="nv">factory</span><span class="p">:</span> <span class="kt">SessionFactory</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nf">debugPrint</span><span class="p">(</span><span class="s">"New session detected"</span><span class="p">)</span>
-        <span class="n">factory</span><span class="o">.</span><span class="nf">createSession</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="s">"Xmartlabs"</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">ResultValue</span><span class="o">.</span><span class="n">handle</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="k">in</span>
-            <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">metaCloudSession</span> <span class="o">=</span> <span class="nv">$0</span>
-            <span class="nv">$0</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
-        <span class="p">})</span>
-    <span class="p">}</span>
-
-    <span class="c1">// Called when the SDK found sessions associated with your GPS location.</span>
-    <span class="kd">func</span> <span class="nf">metaCloud</span><span class="p">(</span><span class="n">_</span> <span class="nv">metaCloud</span><span class="p">:</span> <span class="kt">MetaCloud</span><span class="p">,</span> <span class="n">didFindExistentSessions</span> <span class="nv">sessions</span><span class="p">:</span> <span class="p">[</span><span class="kt">MetaCloudSessionDescriptor</span><span class="p">],</span> <span class="nv">factory</span><span class="p">:</span> <span class="kt">SessionFactory</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nf">debugPrint</span><span class="p">(</span><span class="s">"Existent sessions </span><span class="se">\(</span><span class="n">sessions</span><span class="se">)</span><span class="s">"</span><span class="p">)</span>
-        <span class="c1">// present to the user the possible sessions and then restore one of them.</span>
-
-        <span class="k">let</span> <span class="nv">selectedId</span> <span class="o">=</span> <span class="n">session</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
-        <span class="n">factory</span><span class="o">.</span><span class="nf">restoreSession</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="n">selectedId</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">ResultValue</span><span class="o">.</span><span class="n">handle</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="k">in</span>
-            <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">metaCloudSession</span> <span class="o">=</span> <span class="nv">$0</span>
-            <span class="nv">$0</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
-
-            <span class="c1">// once you are ready, start the scan process to find a match.</span>
-            <span class="nv">$0</span><span class="o">.</span><span class="nf">startScan</span><span class="p">()</span>
-        <span class="p">})</span>
-    <span class="p">}</span>
+<pre class="highlight swift tab-swift"><code><span class="kd">extension</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">SpatialCanvasDelegate</span> <span class="p">{</span>
 
     <span class="c1">// Generic fallback</span>
-    <span class="kd">func</span> <span class="nf">metaCloud</span><span class="p">(</span><span class="n">_</span> <span class="nv">metaCloud</span><span class="p">:</span> <span class="kt">MetaCloud</span><span class="p">,</span> <span class="n">didFailWith</span> <span class="nv">error</span><span class="p">:</span> <span class="kt">Error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">func</span> <span class="nf">spatialCanvas</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvas</span><span class="p">:</span> <span class="kt">SpatialCanvas</span><span class="p">,</span> <span class="n">didFailWith</span> <span class="nv">error</span><span class="p">:</span> <span class="kt">Error</span><span class="p">)</span> <span class="p">{</span>
         <span class="nf">debugPrint</span><span class="p">(</span><span class="s">"ERROR </span><span class="se">\(</span><span class="n">error</span><span class="o">.</span><span class="n">localizedDescription</span><span class="se">)</span><span class="s">"</span><span class="p">)</span>
     <span class="p">}</span>
 
 <span class="p">}</span>
 </code></pre>
 <blockquote>
-<p>Once you restore an already existent session and start the scanning process by calling <code>session.startScan()</code> you will get notified when the SDK finds objects or updates their position in the 3D space.</p>
+<p>Once you restore an already existent room and start the scanning process by calling <code>room.startScan()</code> you will get notified when the SDK finds objects or updates their position in the 3D space.</p>
 </blockquote>
-<pre class="highlight swift tab-swift"><code><span class="kd">extension</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">MetaCloudSessionDelegate</span> <span class="p">{</span>
+<pre class="highlight swift tab-swift"><code><span class="kd">extension</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">SpatialCanvasRoomDelegate</span> <span class="p">{</span>
 
-    <span class="kd">func</span> <span class="nf">metaCloudSession</span><span class="p">(</span><span class="n">_</span> <span class="nv">metaCloudSession</span><span class="p">:</span> <span class="kt">MetaCloudSession</span><span class="p">,</span> <span class="n">didFindObjects</span> <span class="nv">objects</span><span class="p">:</span> <span class="p">[</span><span class="kt">MetaCloudObject</span><span class="p">])</span> <span class="p">{</span>
+    <span class="c1">// called when the SDK successfully adds an object after calling spatialCanvasRoom.addObject(...)</span>
+    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didAddObject</span> <span class="nv">object</span><span class="p">:</span> <span class="kt">SpatialCanvasObject</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// add your object to your sceneView</span>
+    <span class="p">}</span>
+
+    <span class="c1">// called when the SDK finds objects after restoring a room and calling spatialCanvasRoom.startScan()</span>
+    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didFindObjects</span> <span class="nv">objects</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasObject</span><span class="p">])</span> <span class="p">{</span>
         <span class="n">objects</span><span class="o">.</span><span class="n">forEach</span> <span class="p">{</span>
            <span class="k">let</span> <span class="nv">o</span> <span class="o">=</span> <span class="c1">// get geometry and properties for object with persisted id = $0.id</span>
            <span class="n">o</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="nv">$0</span><span class="o">.</span><span class="n">position</span>
@@ -379,7 +405,8 @@ source 'https://github.com/xmartlabs/cocoapods-specs.git'
         <span class="p">}</span>
     <span class="p">}</span>
 
-    <span class="kd">func</span> <span class="nf">metaCloudSession</span><span class="p">(</span><span class="n">_</span> <span class="nv">metaCloudSession</span><span class="p">:</span> <span class="kt">MetaCloudSession</span><span class="p">,</span> <span class="nv">didUpdateObjects</span><span class="p">:</span> <span class="p">[</span><span class="kt">MetaCloudObject</span><span class="p">])</span> <span class="p">{</span>
+    <span class="c1">// the SDK may update the objects positions</span>
+    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didUpdateObjects</span> <span class="nv">objects</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasObject</span><span class="p">])</span> <span class="p">{</span>
       <span class="n">objects</span><span class="o">.</span><span class="n">forEach</span> <span class="p">{</span>
          <span class="k">let</span> <span class="nv">o</span> <span class="o">=</span> <span class="c1">// get node from sceneView with id = $0.id</span>
          <span class="c1">// update its position</span>
@@ -387,31 +414,32 @@ source 'https://github.com/xmartlabs/cocoapods-specs.git'
       <span class="p">}</span>
     <span class="p">}</span>
 
+    <span class="c1">// intended to collect feedback from users</span>
+    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didMatchRoomAndWantsFeedback</span> <span class="nv">callback</span><span class="p">:</span> <span class="p">(</span><span class="kt">UIViewController</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nf">callback</span><span class="p">(</span><span class="k">self</span><span class="p">)</span>
+    <span class="p">}</span>
+
 <span class="p">}</span>
 </code></pre>
 <p>Behaviour of the SDK:</p>
 
-<p>On first place, the SDK will query a set of sessions associated with your GPS location and let you know about this result. You may want to present a UI with the list of fetched sessions and let the user select one or create a new one if he wants.  </p>
+<p>On first place, you need to query the available rooms by calling <code>SpatialCanvas.shared.getNearRooms</code> or <code>SpatialCanvas.shared.getAllRooms</code>. You may want to present a UI with the list of fetched rooms and let the user select one or create a new one if he wants.  </p>
 
-<p>If you create a new session from scratch, after a room scanning process, you can start adding objects to it in order to persist them. On the other hand, if you restore an existent one you will start a scanning process until the SDK notifies you that it found your objects.</p>
-
-<aside class="notice">
-The room scanning process is not included in this SDK version.
-</aside>
+<p>If you create a new room from scratch, after a room scanning process, you can start adding objects to it in order to persist them. On the other hand, if you restore an existent one you will start a scanning process until the SDK notifies you that it found your objects.</p>
 <h2 id='components'>Components</h2>
 <p>Main components of the SDK:</p>
 
 <ul>
-<li>MetaCloud.shared instance:<br>
+<li>SpatialCanvas.shared instance:<br>
 The main entry point for the SDK. You should initialize it when your application launches, configure your ViewController as its delegate and use it to run an ARKit session.</li>
-<li>MetaCloudDelegate:<br>
-Delegate that notifies you about the sessions associated with your gps location.</li>
-<li>SessionFactory:<br>
-Lets you create a new session, restore an existent one and query all your meta cloud sessions.</li>
-<li>MetaCloudSession:<br>
-Object that represents a session. Lets you add persistent objects.</li>
-<li>MetaCloudSessionDelegate:<br>
-Notifies you whenever the session finds a match with a list of objects along with their ids and positions.</li>
+<li>SpatialCanvasDelegate:<br>
+Delegate that extends the ARSessionDelegate.</li>
+<li>RoomScan:<br>
+Object that allows you to perform a scan of the room when creating a new room.</li>
+<li>SpatialCanvasRoom:<br>
+Object that represents a room. Lets you add persistent objects.</li>
+<li>SpatialCanvasRoomDelegate:<br>
+Notifies you whenever the room finds already persisted objects along with their ids and positions.</li>
 </ul>
 
       </div>
