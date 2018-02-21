@@ -13,212 +13,252 @@ search: true
 
 # Introduction
 
-This document specifies the API for using the SpatialCanvas service.
+SpatialCanvas is an iOS SDK meant to enhance your application by providing a persistent augmented reality experience.
+This document specifies the main API for developers.
+
+# Requirements
+
+- iOS 11.3+
+- ARKit 1.5+
 
 # Install
 
-> In your Podfile, add the following sources
+> In your Podfile, add the following line to your targets of interest:
 
-```
-source 'https://github.com/CocoaPods/Specs.git'
-source 'https://github.com/xmartlabs/cocoapods-specs.git'
-```
-
-> And then, add the following line to your targets of interest:
-
-```
-pod 'SpatialCanvas', '~> 0.3.1'
+```ruby
+pod 'SpatialCanvas', '~> 0.5'
 ```
 
-For now, the SDK only support Cocoapods.
+> In your application Info.plist, add the following property:
+
+```XML
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>This application will use the location for Augmented Reality persistence.</string>
+```
+
+For now, the SDK only supports [CocoaPods](https://cocoapods.org/) as its install method.
+
 
 # Usage
 
-## Behaviour
+The SDK lets you create and restore `rooms` which have persisted objects associated.
+In order to accomplish this, it relies on the existence of a rectangled `master anchor` object that
+should not move and be unique within the real-world space (for instance, a frame in the wall).
 
-> Initialize the SDK in your AppDelegate
+In order to create a room the following steps are required:
+
+1. Give the room a unique name.
+2. Scan it.
+3. Scan a master anchor object.
+
+On the other hand, when restoring you need to:
+
+1. Select the room you want to restore.
+2. Scan the master anchor object of the restored room.
+
+# API
+
+## SpatialCanvas
+  The main entry point for the SDK. It exposes functions to create and restore rooms and it's accessed through the `SpatialCanvas.shared` singleton instance.
 
 ```swift
-import SpatialCanvas
-
-@UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
-
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        SpatialCanvas.shared.initialize(environment: .staging) // or .production
-        return true
-    }
-
-}
+  weak var delegate: SpatialCanvasDelegate?
 ```
-
-> In your ViewController:
+> Delegate of SDK. It extends the ARSessionDelegate protocol.
 
 ```swift
-import ARKit
-import SpatialCanvas
-import UKit
-
-class ViewController: UIViewController {
-
-    @IBOutlet var sceneView: ARSCNView!
-
-    var spatialCanvasRoom: SpatialCanvasRoom?
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        SpatialCanvas.shared.delegate = self
-        getRooms()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        let configuration = ARWorldTrackingConfiguration()
-        configuration.planeDetection = .horizontal
-        SpatialCanvas.shared.run(scene: sceneView, with: configuration)
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-
-        SpatialCanvas.shared.pause()
-    }
-
-    @IBAction func insertObject(_ sender: UIButton) {
-        let position: float3 = [0,0,0]
-
-        // add your object to the SpatialCanvasRoom, the SDK will notify this add operation by calling the SpatialCanvasRoomDelegate didAddObject method.
-        spatialCanvasRoom?.addObject(position: position, completion: ResultValue.handle {
-            debugPrint("Object persisted \($0)")
-        })
-    }
-
-    func getRooms() {
-        SpatialCanvas.shared.getNearRooms { [weak self] result in
-            switch result {
-            case let .success(rooms):
-                self?.show(rooms: rooms)
-            case let .error(error):
-                // show error
-            }
-        }
-    }
-
-    func show(rooms: [SpatialCanvasRoomDescriptor]) {
-        let alert = UIAlertController(title: "Select a room", message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "Create new", style: .default, handler: { [weak self] _ in
-            self?.createNewRoom()
-        }))
-        rooms.forEach { s in
-            alert.addAction(UIAlertAction(title: s.name, style: .default, handler: { [weak self] _ in
-                self?.restoreRoom(id: s.id)
-            }))
-        }
-        present(alert, animated: true, completion: nil)
-    }
-
-    func restoreRoom(id: String) {
-        SpatialCanvas.shared.restoreRoom(id: id, completion: ResultValue.handle { [weak self] in
-            self?.spatialCanvasRoom = $0
-            $0.delegate = self
-            $0.startScan()
-        })
-    }
-
-    func createNewRoom() {
-      let roomScan = RoomScan()
-
-      // perform a room scan by
-      roomScan.start()
-
-      /* let the user scan the room */
-
-      roomScan.stop()
-      roomScan.finish()
-
-      SpatialCanvas.shared.createRoom(name: "Office", room: roomScan) { [weak self] result in
-          switch result {
-          case let .success(r):
-              self?.spatialCanvasRoom = r
-              r.delegate = self
-          case let .error(error):
-              // show error
-          }
-      }
-    }
-
-}
+  func initialize()
 ```
+> Initialize the SDK. This should be done when the application launches.
 
-> When setting you as the delegate of `SpatialCanvas.shared` instance, you will get notified about potential SDK errors and also you will receive all events from `ARSessionDelegate`.
-`SpatialCanvasDelegate` inherits from the `ARSessionDelegate` protocol.
+```swift
+  func run(sceneView: ARSCNView, with configuration: ARWorldTrackingConfiguration)
+```  
+> Instead of calling `sceneView.session.run(configuration)` as you would normally do in an ARKit based app, you should call this function.
+
+```swift
+  func pause()
+```
+> Instead of calling `sceneView.session.pause()` you should call this function.
+
+```swift
+  func createRoom(name: String, room: RoomScan, masterAnchor: MasterAnchorScan, completion: @escaping Completion<ResultValue<SpatialCanvasRoom>>)
+```
+> Creates a room with the given `name`, `room scan` and `masterAnchor`.
+
+```swift
+  func restoreRoom(id: String, completion: @escaping Completion<ResultValue<SpatialCanvasRoom>>)
+```
+> Restores a room with the given `id`.
+
+```swift
+  func getNearRooms(completion: @escaping Completion<ResultValue<[SpatialCanvasRoomDescriptor]>>)
+```
+> Retrieves a list of near rooms based on the current GPS location.
+
+```swift
+  func deleteRoom(roomId: String, completion: @escaping Completion<Result>)
+```
+> Deletes a room with the given id.  
+
+## SpatialCanvasDelegate
+
+Delegate that extends the `ARSessionDelegate`. You should set your view controller as the `delegate`
+on the `SpatialCanvas.shared.delegate` variable.  
+Instead of conforming to the `ARSessionDelegate`, you would conform to the `SpatialCanvasDelegate`.
 
 ```swift
 extension ViewController: SpatialCanvasDelegate {
 
-    // Generic fallback
+    // functions from ARSessionDelegate
+
     func spatialCanvas(_ spatialCanvas: SpatialCanvas, didFailWith error: Error) {
-        debugPrint("ERROR \(error.localizedDescription)")
+        // an SDK error has occurred
     }
 
 }
 ```
 
-> Once you restore an already existent room and start the scanning process by calling `room.startScan()` you will get notified when the SDK finds objects or updates their position in the 3D space.
+## RoomScan
+
+Lets you scan the room you are creating. An instance of this class is required to call
+the `SpatialCanvas.shared.createRoom` function.
 
 ```swift
-extension ViewController: SpatialCanvasRoomDelegate {
+  func start()
+```
+> Starts the scan.
 
-    // called when the SDK successfully adds an object after calling spatialCanvasRoom.addObject(...)
-    func spatialCanvasRoom(_ spatialCanvasRoom: SpatialCanvasRoom, didAddObject object: SpatialCanvasObject) {
-        // add your object to your sceneView
-    }
+```swift
+  func stop()
+```
+> Stops the scan. You can still re-start it from its current state.
 
-    // called when the SDK finds objects after restoring a room and calling spatialCanvasRoom.startScan()
-    func spatialCanvasRoom(_ spatialCanvasRoom: SpatialCanvasRoom, didFindObjects objects: [SpatialCanvasObject]) {
-        objects.forEach {
-           let o = // get geometry and properties for object with persisted id = $0.id
-           o.position = $0.position
-           // add o to your sceneView
-        }
-    }
+```swift
+  func finish()
+```
+> Call this function once you are done with the scan.
 
-    // the SDK may update the objects positions
-    func spatialCanvasRoom(_ spatialCanvasRoom: SpatialCanvasRoom, didUpdateObjects objects: [SpatialCanvasObject]) {
-      objects.forEach {
-         let o = // get node from sceneView with id = $0.id
-         // update its position
-         o.position = $0.position
-      }
-    }
+```swift
+  func clear()
+```
+> Resets the current state of the scanner.
 
-    // intended to collect feedback from users
-    func spatialCanvasRoom(_ spatialCanvasRoom: SpatialCanvasRoom, didMatchRoomAndWantsFeedback callback: (UIViewController) -> Void) {
-        callback(self)
-    }
+```swift
+  var onNewFrame: (([float3]) -> Void)?
+```
+> Notifies you about new scanned feature points.
+
+```swift
+  var onProgress: ((Float) -> Void)?
+```
+> Progress indicator in the range [0,1].
+
+## MasterAnchorScan
+
+Lets you scan the master anchor object of the room. An instance of this class is required to call
+the `SpatialCanvas.shared.createRoom` function.
+All described functions for the `RoomScan` apply for this class as well.
+
+```swift
+  init(visualizer: ImageSearchVisualizer? = nil)
+```
+> Creates an instance with an associated visualizer. The visualizer will be notified about the scanner state.
+
+```swift
+  func scan()
+```
+> Attempts to extract the current rectangled detected shape. In case of success, it will be notified to the visualizer.
+
+## ImageSearchVisualizer
+
+Protocol used to provide feedback about the current master anchor scan state.
+
+```swift
+protocol ImageSearchVisualizer {
+
+  // on-screen rectangle
+  func on(rectangle: Rectangle2D)
+
+  // real-world metrics
+  func on(width: Double, height: Double)
+
+  // after a successful masterAnchorScan.scan() call
+  func on(image: ImageWithMetrics)
+
+  func onReset()
+  func onNoRectangle()
 
 }
 ```
 
-Behaviour of the SDK:
+## SpatialCanvasRoom
 
-On first place, you need to query the available rooms by calling `SpatialCanvas.shared.getNearRooms` or `SpatialCanvas.shared.getAllRooms`. You may want to present a UI with the list of fetched rooms and let the user select one or create a new one if he wants.  
+Represents a created or restored room. It lets you add objects and notifies you whenever objects are added, found or updated.
 
-If you create a new room from scratch, after a room scanning process, you can start adding objects to it in order to persist them. On the other hand, if you restore an existent one you will start a scanning process until the SDK notifies you that it found your objects.
+```swift
+  weak var delegate: SpatialCanvasRoomDelegate?
+```
+> Delegate of the room. It will be notified when an object is found, added or updated. Objects are found only when restoring a room.
 
+```swift
+  let masterAnchor: MasterAnchor
+```
+> Master anchor object. It has an imageUrl property describing the scanned anchor object.
 
-## Components
+```swift
+  func addObject(position: float3, eulerAngles: float3, completion: Completion<Result>? = nil)
+```
+> Adds an object to the room in the given position and orientation. The object addition will be notified through the delegate.
 
-Main components of the SDK:
+## SpatialCanvasRoomDelegate
 
-- SpatialCanvas.shared instance:  
-  The main entry point for the SDK. You should initialize it when your application launches, configure your ViewController as its delegate and use it to run an ARKit session.
-- SpatialCanvasDelegate:  
-  Delegate that extends the ARSessionDelegate.
-- RoomScan:  
-  Object that allows you to perform a scan of the room when creating a new room.
-- SpatialCanvasRoom:  
-  Object that represents a room. Lets you add persistent objects.
-- SpatialCanvasRoomDelegate:  
-  Notifies you whenever the room finds already persisted objects along with their ids and positions.
+Notifies you whenever objects are added, found or updated.
+
+```swift
+protocol SpatialCanvasRoomDelegate: class {
+
+  // objects were found after restoring a room and scanning the master anchor object
+  func spatialCanvasRoom(_ spatialCanvasRoom: SpatialCanvasRoom, didFindObjects objects: [SpatialCanvasObject])
+
+  // object was added to the room
+  func spatialCanvasRoom(_ spatialCanvasRoom: SpatialCanvasRoom, didAddObject object: SpatialCanvasObject)
+
+  // objects already added or found were updated in the room
+  func spatialCanvasRoom(_ spatialCanvasRoom: SpatialCanvasRoom, didUpdateObjects objects: [SpatialCanvasObject])
+
+}
+```
+
+## SpatialCanvasRoomDescriptor
+
+Room descriptor.
+
+```swift
+class SpatialCanvasRoomDescriptor: NSObject {
+
+    let id: String
+    let name: String
+
+}
+```
+
+## SpatialCanvasObject
+
+Represents an object being managed by the SDK.
+
+```swift
+class SpatialCanvasObject {
+
+    let id: String
+    let position: float3
+
+    // orientation
+    let eulerAngles: float3
+
+}
+```
+
+# Example
+
+In order to see an example of usage please visit [here](https://github.com/spatialcanvas/spatialcanvas-ios).
