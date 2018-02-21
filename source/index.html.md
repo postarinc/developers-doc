@@ -62,42 +62,42 @@ On the other hand, when restoring you need to:
   The main entry point for the SDK. It exposes functions to create and restore rooms and it's accessed through the `SpatialCanvas.shared` singleton instance.
 
 ```swift
-  weak var delegate: SpatialCanvasDelegate?
+weak var delegate: SpatialCanvasDelegate?
 ```
 > Delegate of SDK. It extends the ARSessionDelegate protocol.
 
 ```swift
-  func initialize()
+func initialize()
 ```
 > Initialize the SDK. This should be done when the application launches.
 
 ```swift
-  func run(sceneView: ARSCNView, with configuration: ARWorldTrackingConfiguration)
+func run(sceneView: ARSCNView, with configuration: ARWorldTrackingConfiguration)
 ```  
 > Instead of calling `sceneView.session.run(configuration)` as you would normally do in an ARKit based app, you should call this function.
 
 ```swift
-  func pause()
+func pause()
 ```
 > Instead of calling `sceneView.session.pause()` you should call this function.
 
 ```swift
-  func createRoom(name: String, room: RoomScan, masterAnchor: MasterAnchorScan, completion: @escaping Completion<ResultValue<SpatialCanvasRoom>>)
+func createRoom(name: String, room: RoomScan, masterAnchor: MasterAnchorScan, completion: @escaping Completion<ResultValue<SpatialCanvasRoom>>)
 ```
 > Creates a room with the given `name`, `room scan` and `masterAnchor`.
 
 ```swift
-  func restoreRoom(id: String, completion: @escaping Completion<ResultValue<SpatialCanvasRoom>>)
+func restoreRoom(id: String, completion: @escaping Completion<ResultValue<SpatialCanvasRoom>>)
 ```
 > Restores a room with the given `id`.
 
 ```swift
-  func getNearRooms(completion: @escaping Completion<ResultValue<[SpatialCanvasRoomDescriptor]>>)
+func getNearRooms(completion: @escaping Completion<ResultValue<[SpatialCanvasRoomDescriptor]>>)
 ```
 > Retrieves a list of near rooms based on the current GPS location.
 
 ```swift
-  func deleteRoom(roomId: String, completion: @escaping Completion<Result>)
+func deleteRoom(roomId: String, completion: @escaping Completion<Result>)
 ```
 > Deletes a room with the given id.  
 
@@ -125,32 +125,32 @@ Lets you scan the room you are creating. An instance of this class is required t
 the `SpatialCanvas.shared.createRoom` function.
 
 ```swift
-  func start()
+func start()
 ```
 > Starts the scan.
 
 ```swift
-  func stop()
+func stop()
 ```
 > Stops the scan. You can still re-start it from its current state.
 
 ```swift
-  func finish()
+func finish()
 ```
 > Call this function once you are done with the scan.
 
 ```swift
-  func clear()
+func clear()
 ```
 > Resets the current state of the scanner.
 
 ```swift
-  var onNewFrame: (([float3]) -> Void)?
+var onNewFrame: (([float3]) -> Void)?
 ```
 > Notifies you about new scanned feature points.
 
 ```swift
-  var onProgress: ((Float) -> Void)?
+var onProgress: ((Float) -> Void)?
 ```
 > Progress indicator in the range [0,1].
 
@@ -161,12 +161,12 @@ the `SpatialCanvas.shared.createRoom` function.
 All described functions for the `RoomScan` apply for this class as well.
 
 ```swift
-  init(visualizer: ImageSearchVisualizer? = nil)
+init(visualizer: ImageSearchVisualizer? = nil)
 ```
 > Creates an instance with an associated visualizer. The visualizer will be notified about the scanner state.
 
 ```swift
-  func scan()
+func scan()
 ```
 > Attempts to extract the current rectangled detected shape. In case of success, it will be notified to the visualizer.
 
@@ -197,17 +197,17 @@ protocol ImageSearchVisualizer {
 Represents a created or restored room. It lets you add objects and notifies you whenever objects are added, found or updated.
 
 ```swift
-  weak var delegate: SpatialCanvasRoomDelegate?
+weak var delegate: SpatialCanvasRoomDelegate?
 ```
 > Delegate of the room. It will be notified when an object is found, added or updated. Objects are found only when restoring a room.
 
 ```swift
-  let masterAnchor: MasterAnchor
+let masterAnchor: MasterAnchor
 ```
 > Master anchor object. It has an imageUrl property describing the scanned anchor object.
 
 ```swift
-  func addObject(position: float3, eulerAngles: float3, completion: Completion<Result>? = nil)
+func addObject(position: float3, eulerAngles: float3, completion: Completion<Result>? = nil)
 ```
 > Adds an object to the room in the given position and orientation. The object addition will be notified through the delegate.
 
