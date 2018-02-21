@@ -222,18 +222,48 @@
             <a href="#introduction" class="toc-h1 toc-link" data-title="Introduction">Introduction</a>
           </li>
           <li>
+            <a href="#requirements" class="toc-h1 toc-link" data-title="Requirements">Requirements</a>
+          </li>
+          <li>
             <a href="#install" class="toc-h1 toc-link" data-title="Install">Install</a>
           </li>
           <li>
             <a href="#usage" class="toc-h1 toc-link" data-title="Usage">Usage</a>
+          </li>
+          <li>
+            <a href="#api" class="toc-h1 toc-link" data-title="API">API</a>
               <ul class="toc-list-h2">
                   <li>
-                    <a href="#behaviour" class="toc-h2 toc-link" data-title="Behaviour">Behaviour</a>
+                    <a href="#spatialcanvas" class="toc-h2 toc-link" data-title="SpatialCanvas">SpatialCanvas</a>
                   </li>
                   <li>
-                    <a href="#components" class="toc-h2 toc-link" data-title="Components">Components</a>
+                    <a href="#spatialcanvasdelegate" class="toc-h2 toc-link" data-title="SpatialCanvasDelegate">SpatialCanvasDelegate</a>
+                  </li>
+                  <li>
+                    <a href="#roomscan" class="toc-h2 toc-link" data-title="RoomScan">RoomScan</a>
+                  </li>
+                  <li>
+                    <a href="#masteranchorscan" class="toc-h2 toc-link" data-title="MasterAnchorScan">MasterAnchorScan</a>
+                  </li>
+                  <li>
+                    <a href="#imagesearchvisualizer" class="toc-h2 toc-link" data-title="ImageSearchVisualizer">ImageSearchVisualizer</a>
+                  </li>
+                  <li>
+                    <a href="#spatialcanvasroom" class="toc-h2 toc-link" data-title="SpatialCanvasRoom">SpatialCanvasRoom</a>
+                  </li>
+                  <li>
+                    <a href="#spatialcanvasroomdelegate" class="toc-h2 toc-link" data-title="SpatialCanvasRoomDelegate">SpatialCanvasRoomDelegate</a>
+                  </li>
+                  <li>
+                    <a href="#spatialcanvasroomdescriptor" class="toc-h2 toc-link" data-title="SpatialCanvasRoomDescriptor">SpatialCanvasRoomDescriptor</a>
+                  </li>
+                  <li>
+                    <a href="#spatialcanvasobject" class="toc-h2 toc-link" data-title="SpatialCanvasObject">SpatialCanvasObject</a>
                   </li>
               </ul>
+          </li>
+          <li>
+            <a href="#example" class="toc-h1 toc-link" data-title="Example">Example</a>
           </li>
       </div>
         <ul class="toc-footer">
@@ -245,202 +275,216 @@
       <div class="dark-box"></div>
       <div class="content">
         <h1 id='introduction'>Introduction</h1>
-<p>This document specifies the API for using the SpatialCanvas service.</p>
+<p>SpatialCanvas is an iOS SDK meant to enhance your application by providing a persistent augmented reality experience.
+This document specifies the main API for developers.</p>
+<h1 id='requirements'>Requirements</h1>
+<ul>
+<li>iOS 11.3+</li>
+<li>ARKit 1.5+</li>
+</ul>
 <h1 id='install'>Install</h1>
 <blockquote>
-<p>In your Podfile, add the following sources</p>
+<p>In your Podfile, add the following line to your targets of interest:</p>
 </blockquote>
-<pre class="highlight plaintext"><code>source 'https://github.com/CocoaPods/Specs.git'
-source 'https://github.com/xmartlabs/cocoapods-specs.git'
+<pre class="highlight ruby tab-ruby"><code><span class="n">pod</span> <span class="s1">'SpatialCanvas'</span><span class="p">,</span> <span class="s1">'~&gt; 0.5'</span>
 </code></pre>
 <blockquote>
-<p>And then, add the following line to your targets of interest:</p>
+<p>In your application Info.plist, add the following property:</p>
 </blockquote>
-<pre class="highlight plaintext"><code>pod 'SpatialCanvas', '~&gt; 0.3.1'
+<pre class="highlight plaintext"><code>&lt;key&gt;NSLocationWhenInUseUsageDescription&lt;/key&gt;
+&lt;string&gt;This application will use the location for Augmented Reality persistence.&lt;/string&gt;
 </code></pre>
-<p>For now, the SDK only support Cocoapods.</p>
-<h1 id='usage'>Usage</h1><h2 id='behaviour'>Behaviour</h2>
-<blockquote>
-<p>Initialize the SDK in your AppDelegate</p>
-</blockquote>
-<pre class="highlight swift tab-swift"><code><span class="kd">import</span> <span class="kt">SpatialCanvas</span>
+<p>For now, the SDK only supports <a href="https://cocoapods.org/">CocoaPods</a> as its install method.</p>
+<h1 id='usage'>Usage</h1>
+<p>The SDK lets you create and restore <code>rooms</code> which have persisted objects associated.
+In order to accomplish this, it relies on the existence of a rectangled <code>master anchor</code> object that
+should not move and be unique within the real-world space (for instance, a frame in the wall).</p>
 
-<span class="kd">@UIApplicationMain</span>
-<span class="kd">class</span> <span class="kt">AppDelegate</span><span class="p">:</span> <span class="kt">UIResponder</span><span class="p">,</span> <span class="kt">UIApplicationDelegate</span> <span class="p">{</span>
+<p>In order to create a room the following steps are required:</p>
 
-    <span class="kd">func</span> <span class="nf">application</span><span class="p">(</span><span class="n">_</span> <span class="nv">application</span><span class="p">:</span> <span class="kt">UIApplication</span><span class="p">,</span> <span class="n">didFinishLaunchingWithOptions</span> <span class="nv">launchOptions</span><span class="p">:</span> <span class="p">[</span><span class="kt">UIApplicationLaunchOptionsKey</span><span class="p">:</span> <span class="kt">Any</span><span class="p">]?)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span> <span class="p">{</span>
-        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">initialize</span><span class="p">(</span><span class="nv">environment</span><span class="p">:</span> <span class="o">.</span><span class="n">staging</span><span class="p">)</span> <span class="c1">// or .production</span>
-        <span class="k">return</span> <span class="kc">true</span>
-    <span class="p">}</span>
+<ol>
+<li>Give the room a unique name.</li>
+<li>Scan it.</li>
+<li>Scan a master anchor object.</li>
+</ol>
 
-<span class="p">}</span>
-</code></pre>
-<blockquote>
-<p>In your ViewController:</p>
-</blockquote>
-<pre class="highlight swift tab-swift"><code><span class="kd">import</span> <span class="kt">ARKit</span>
-<span class="kd">import</span> <span class="kt">SpatialCanvas</span>
-<span class="kd">import</span> <span class="kt">UKit</span>
+<p>On the other hand, when restoring you need to:</p>
 
-<span class="kd">class</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">UIViewController</span> <span class="p">{</span>
-
-    <span class="kd">@IBOutlet</span> <span class="k">var</span> <span class="nv">sceneView</span><span class="p">:</span> <span class="kt">ARSCNView</span><span class="o">!</span>
-
-    <span class="k">var</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">?</span>
-
-    <span class="k">override</span> <span class="kd">func</span> <span class="nf">viewDidLoad</span><span class="p">()</span> <span class="p">{</span>
-        <span class="k">super</span><span class="o">.</span><span class="nf">viewDidLoad</span><span class="p">()</span>
-
-        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
-        <span class="nf">getRooms</span><span class="p">()</span>
-    <span class="p">}</span>
-
-    <span class="k">override</span> <span class="kd">func</span> <span class="nf">viewWillAppear</span><span class="p">(</span><span class="n">_</span> <span class="nv">animated</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">super</span><span class="o">.</span><span class="nf">viewWillAppear</span><span class="p">(</span><span class="n">animated</span><span class="p">)</span>
-        <span class="k">let</span> <span class="nv">configuration</span> <span class="o">=</span> <span class="kt">ARWorldTrackingConfiguration</span><span class="p">()</span>
-        <span class="n">configuration</span><span class="o">.</span><span class="n">planeDetection</span> <span class="o">=</span> <span class="o">.</span><span class="n">horizontal</span>
-        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">run</span><span class="p">(</span><span class="nv">scene</span><span class="p">:</span> <span class="n">sceneView</span><span class="p">,</span> <span class="nv">with</span><span class="p">:</span> <span class="n">configuration</span><span class="p">)</span>
-    <span class="p">}</span>
-
-    <span class="k">override</span> <span class="kd">func</span> <span class="nf">viewWillDisappear</span><span class="p">(</span><span class="n">_</span> <span class="nv">animated</span><span class="p">:</span> <span class="kt">Bool</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">super</span><span class="o">.</span><span class="nf">viewWillDisappear</span><span class="p">(</span><span class="n">animated</span><span class="p">)</span>
-
-        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">pause</span><span class="p">()</span>
-    <span class="p">}</span>
-
-    <span class="kd">@IBAction</span> <span class="kd">func</span> <span class="nf">insertObject</span><span class="p">(</span><span class="n">_</span> <span class="nv">sender</span><span class="p">:</span> <span class="kt">UIButton</span><span class="p">)</span> <span class="p">{</span>
-        <span class="k">let</span> <span class="nv">position</span><span class="p">:</span> <span class="n">float3</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
-
-        <span class="c1">// add your object to the SpatialCanvasRoom, the SDK will notify this add operation by calling the SpatialCanvasRoomDelegate didAddObject method.</span>
-        <span class="n">spatialCanvasRoom</span><span class="p">?</span><span class="o">.</span><span class="nf">addObject</span><span class="p">(</span><span class="nv">position</span><span class="p">:</span> <span class="n">position</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">ResultValue</span><span class="o">.</span><span class="n">handle</span> <span class="p">{</span>
-            <span class="nf">debugPrint</span><span class="p">(</span><span class="s">"Object persisted </span><span class="se">\(</span><span class="nv">$0</span><span class="se">)</span><span class="s">"</span><span class="p">)</span>
-        <span class="p">})</span>
-    <span class="p">}</span>
-
-    <span class="kd">func</span> <span class="nf">getRooms</span><span class="p">()</span> <span class="p">{</span>
-        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">getNearRooms</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">result</span> <span class="k">in</span>
-            <span class="k">switch</span> <span class="n">result</span> <span class="p">{</span>
-            <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">success</span><span class="p">(</span><span class="n">rooms</span><span class="p">):</span>
-                <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">show</span><span class="p">(</span><span class="nv">rooms</span><span class="p">:</span> <span class="n">rooms</span><span class="p">)</span>
-            <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">error</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
-                <span class="c1">// show error</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
-
-    <span class="kd">func</span> <span class="nf">show</span><span class="p">(</span><span class="nv">rooms</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasRoomDescriptor</span><span class="p">])</span> <span class="p">{</span>
-        <span class="k">let</span> <span class="nv">alert</span> <span class="o">=</span> <span class="kt">UIAlertController</span><span class="p">(</span><span class="nv">title</span><span class="p">:</span> <span class="s">"Select a room"</span><span class="p">,</span> <span class="nv">message</span><span class="p">:</span> <span class="kc">nil</span><span class="p">,</span> <span class="nv">preferredStyle</span><span class="p">:</span> <span class="o">.</span><span class="n">actionSheet</span><span class="p">)</span>
-        <span class="n">alert</span><span class="o">.</span><span class="nf">addAction</span><span class="p">(</span><span class="kt">UIAlertAction</span><span class="p">(</span><span class="nv">title</span><span class="p">:</span> <span class="s">"Create new"</span><span class="p">,</span> <span class="nv">style</span><span class="p">:</span> <span class="o">.</span><span class="k">default</span><span class="p">,</span> <span class="nv">handler</span><span class="p">:</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">_</span> <span class="k">in</span>
-            <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">createNewRoom</span><span class="p">()</span>
-        <span class="p">}))</span>
-        <span class="n">rooms</span><span class="o">.</span><span class="n">forEach</span> <span class="p">{</span> <span class="n">s</span> <span class="k">in</span>
-            <span class="n">alert</span><span class="o">.</span><span class="nf">addAction</span><span class="p">(</span><span class="kt">UIAlertAction</span><span class="p">(</span><span class="nv">title</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nv">style</span><span class="p">:</span> <span class="o">.</span><span class="k">default</span><span class="p">,</span> <span class="nv">handler</span><span class="p">:</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">_</span> <span class="k">in</span>
-                <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="nf">restoreRoom</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-            <span class="p">}))</span>
-        <span class="p">}</span>
-        <span class="nf">present</span><span class="p">(</span><span class="n">alert</span><span class="p">,</span> <span class="nv">animated</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kc">nil</span><span class="p">)</span>
-    <span class="p">}</span>
-
-    <span class="kd">func</span> <span class="nf">restoreRoom</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="p">{</span>
-        <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">restoreRoom</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="n">id</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">ResultValue</span><span class="o">.</span><span class="n">handle</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="k">in</span>
-            <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">spatialCanvasRoom</span> <span class="o">=</span> <span class="nv">$0</span>
-            <span class="nv">$0</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
-            <span class="nv">$0</span><span class="o">.</span><span class="nf">startScan</span><span class="p">()</span>
-        <span class="p">})</span>
-    <span class="p">}</span>
-
-    <span class="kd">func</span> <span class="nf">createNewRoom</span><span class="p">()</span> <span class="p">{</span>
-      <span class="k">let</span> <span class="nv">roomScan</span> <span class="o">=</span> <span class="kt">RoomScan</span><span class="p">()</span>
-
-      <span class="c1">// perform a room scan by</span>
-      <span class="n">roomScan</span><span class="o">.</span><span class="nf">start</span><span class="p">()</span>
-
-      <span class="cm">/* let the user scan the room */</span>
-
-      <span class="n">roomScan</span><span class="o">.</span><span class="nf">stop</span><span class="p">()</span>
-      <span class="n">roomScan</span><span class="o">.</span><span class="nf">finish</span><span class="p">()</span>
-
-      <span class="kt">SpatialCanvas</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="nf">createRoom</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="s">"Office"</span><span class="p">,</span> <span class="nv">room</span><span class="p">:</span> <span class="n">roomScan</span><span class="p">)</span> <span class="p">{</span> <span class="p">[</span><span class="k">weak</span> <span class="k">self</span><span class="p">]</span> <span class="n">result</span> <span class="k">in</span>
-          <span class="k">switch</span> <span class="n">result</span> <span class="p">{</span>
-          <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">success</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
-              <span class="k">self</span><span class="p">?</span><span class="o">.</span><span class="n">spatialCanvasRoom</span> <span class="o">=</span> <span class="n">r</span>
-              <span class="n">r</span><span class="o">.</span><span class="n">delegate</span> <span class="o">=</span> <span class="k">self</span>
-          <span class="k">case</span> <span class="kd">let</span> <span class="o">.</span><span class="nf">error</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
-              <span class="c1">// show error</span>
-          <span class="p">}</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-
-<span class="p">}</span>
+<ol>
+<li>Select the room you want to restore.</li>
+<li>Scan the master anchor object of the restored room.</li>
+</ol>
+<h1 id='api'>API</h1><h2 id='spatialcanvas'>SpatialCanvas</h2>
+<p>The main entry point for the SDK. It exposes functions to create and restore rooms and it&#39;s accessed through the <code>SpatialCanvas.shared</code> singleton instance.</p>
+<pre class="highlight swift tab-swift"><code><span class="k">weak</span> <span class="k">var</span> <span class="nv">delegate</span><span class="p">:</span> <span class="kt">SpatialCanvasDelegate</span><span class="p">?</span>
 </code></pre>
 <blockquote>
-<p>When setting you as the delegate of <code>SpatialCanvas.shared</code> instance, you will get notified about potential SDK errors and also you will receive all events from <code>ARSessionDelegate</code>.
-<code>SpatialCanvasDelegate</code> inherits from the <code>ARSessionDelegate</code> protocol.</p>
+<p>Delegate of SDK. It extends the ARSessionDelegate protocol.</p>
 </blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">initialize</span><span class="p">()</span>
+</code></pre>
+<blockquote>
+<p>Initialize the SDK. This should be done when the application launches.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">run</span><span class="p">(</span><span class="nv">sceneView</span><span class="p">:</span> <span class="kt">ARSCNView</span><span class="p">,</span> <span class="n">with</span> <span class="nv">configuration</span><span class="p">:</span> <span class="kt">ARWorldTrackingConfiguration</span><span class="p">)</span>
+</code></pre>
+<blockquote>
+<p>Instead of calling <code>sceneView.session.run(configuration)</code> as you would normally do in an ARKit based app, you should call this function.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">pause</span><span class="p">()</span>
+</code></pre>
+<blockquote>
+<p>Instead of calling <code>sceneView.session.pause()</code> you should call this function.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">createRoom</span><span class="p">(</span><span class="nv">name</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">room</span><span class="p">:</span> <span class="kt">RoomScan</span><span class="p">,</span> <span class="nv">masterAnchor</span><span class="p">:</span> <span class="kt">MasterAnchorScan</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kd">@escaping</span> <span class="kt">Completion</span><span class="o">&lt;</span><span class="kt">ResultValue</span><span class="o">&lt;</span><span class="kt">SpatialCanvasRoom</span><span class="o">&gt;&gt;</span><span class="p">)</span>
+</code></pre>
+<blockquote>
+<p>Creates a room with the given <code>name</code>, <code>room scan</code> and <code>masterAnchor</code>.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">restoreRoom</span><span class="p">(</span><span class="nv">id</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kd">@escaping</span> <span class="kt">Completion</span><span class="o">&lt;</span><span class="kt">ResultValue</span><span class="o">&lt;</span><span class="kt">SpatialCanvasRoom</span><span class="o">&gt;&gt;</span><span class="p">)</span>
+</code></pre>
+<blockquote>
+<p>Restores a room with the given <code>id</code>.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">getNearRooms</span><span class="p">(</span><span class="nv">completion</span><span class="p">:</span> <span class="kd">@escaping</span> <span class="kt">Completion</span><span class="o">&lt;</span><span class="kt">ResultValue</span><span class="o">&lt;</span><span class="p">[</span><span class="kt">SpatialCanvasRoomDescriptor</span><span class="p">]</span><span class="o">&gt;&gt;</span><span class="p">)</span>
+</code></pre>
+<blockquote>
+<p>Retrieves a list of near rooms based on the current GPS location.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">deleteRoom</span><span class="p">(</span><span class="nv">roomId</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kd">@escaping</span> <span class="kt">Completion</span><span class="o">&lt;</span><span class="kt">Result</span><span class="o">&gt;</span><span class="p">)</span>
+</code></pre>
+<blockquote>
+<p>Deletes a room with the given id.  </p>
+</blockquote>
+<h2 id='spatialcanvasdelegate'>SpatialCanvasDelegate</h2>
+<p>Delegate that extends the <code>ARSessionDelegate</code>. You should set your view controller as the <code>delegate</code>
+on the <code>SpatialCanvas.shared.delegate</code> variable.<br>
+Instead of conforming to the <code>ARSessionDelegate</code>, you would conform to the <code>SpatialCanvasDelegate</code>.</p>
 <pre class="highlight swift tab-swift"><code><span class="kd">extension</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">SpatialCanvasDelegate</span> <span class="p">{</span>
 
-    <span class="c1">// Generic fallback</span>
+    <span class="c1">// functions from ARSessionDelegate</span>
+
     <span class="kd">func</span> <span class="nf">spatialCanvas</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvas</span><span class="p">:</span> <span class="kt">SpatialCanvas</span><span class="p">,</span> <span class="n">didFailWith</span> <span class="nv">error</span><span class="p">:</span> <span class="kt">Error</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nf">debugPrint</span><span class="p">(</span><span class="s">"ERROR </span><span class="se">\(</span><span class="n">error</span><span class="o">.</span><span class="n">localizedDescription</span><span class="se">)</span><span class="s">"</span><span class="p">)</span>
+        <span class="c1">// an SDK error has occurred</span>
     <span class="p">}</span>
 
 <span class="p">}</span>
+</code></pre><h2 id='roomscan'>RoomScan</h2>
+<p>Lets you scan the room you are creating. An instance of this class is required to call
+the <code>SpatialCanvas.shared.createRoom</code> function.</p>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">start</span><span class="p">()</span>
 </code></pre>
 <blockquote>
-<p>Once you restore an already existent room and start the scanning process by calling <code>room.startScan()</code> you will get notified when the SDK finds objects or updates their position in the 3D space.</p>
+<p>Starts the scan.</p>
 </blockquote>
-<pre class="highlight swift tab-swift"><code><span class="kd">extension</span> <span class="kt">ViewController</span><span class="p">:</span> <span class="kt">SpatialCanvasRoomDelegate</span> <span class="p">{</span>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">stop</span><span class="p">()</span>
+</code></pre>
+<blockquote>
+<p>Stops the scan. You can still re-start it from its current state.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">finish</span><span class="p">()</span>
+</code></pre>
+<blockquote>
+<p>Call this function once you are done with the scan.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">clear</span><span class="p">()</span>
+</code></pre>
+<blockquote>
+<p>Resets the current state of the scanner.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="k">var</span> <span class="nv">onNewFrame</span><span class="p">:</span> <span class="p">(([</span><span class="n">float3</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?</span>
+</code></pre>
+<blockquote>
+<p>Notifies you about new scanned feature points.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="k">var</span> <span class="nv">onProgress</span><span class="p">:</span> <span class="p">((</span><span class="kt">Float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?</span>
+</code></pre>
+<blockquote>
+<p>Progress indicator in the range [0,1].</p>
+</blockquote>
+<h2 id='masteranchorscan'>MasterAnchorScan</h2>
+<p>Lets you scan the master anchor object of the room. An instance of this class is required to call
+the <code>SpatialCanvas.shared.createRoom</code> function.
+All described functions for the <code>RoomScan</code> apply for this class as well.</p>
+<pre class="highlight swift tab-swift"><code><span class="nf">init</span><span class="p">(</span><span class="nv">visualizer</span><span class="p">:</span> <span class="kt">ImageSearchVisualizer</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span>
+</code></pre>
+<blockquote>
+<p>Creates an instance with an associated visualizer. The visualizer will be notified about the scanner state.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">scan</span><span class="p">()</span>
+</code></pre>
+<blockquote>
+<p>Attempts to extract the current rectangled detected shape. In case of success, it will be notified to the visualizer.</p>
+</blockquote>
+<h2 id='imagesearchvisualizer'>ImageSearchVisualizer</h2>
+<p>Protocol used to provide feedback about the current master anchor scan state.</p>
+<pre class="highlight swift tab-swift"><code><span class="kd">protocol</span> <span class="kt">ImageSearchVisualizer</span> <span class="p">{</span>
 
-    <span class="c1">// called when the SDK successfully adds an object after calling spatialCanvasRoom.addObject(...)</span>
-    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didAddObject</span> <span class="nv">object</span><span class="p">:</span> <span class="kt">SpatialCanvasObject</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// add your object to your sceneView</span>
-    <span class="p">}</span>
+  <span class="c1">// on-screen rectangle</span>
+  <span class="kd">func</span> <span class="nf">on</span><span class="p">(</span><span class="nv">rectangle</span><span class="p">:</span> <span class="kt">Rectangle2D</span><span class="p">)</span>
 
-    <span class="c1">// called when the SDK finds objects after restoring a room and calling spatialCanvasRoom.startScan()</span>
-    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didFindObjects</span> <span class="nv">objects</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasObject</span><span class="p">])</span> <span class="p">{</span>
-        <span class="n">objects</span><span class="o">.</span><span class="n">forEach</span> <span class="p">{</span>
-           <span class="k">let</span> <span class="nv">o</span> <span class="o">=</span> <span class="c1">// get geometry and properties for object with persisted id = $0.id</span>
-           <span class="n">o</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="nv">$0</span><span class="o">.</span><span class="n">position</span>
-           <span class="c1">// add o to your sceneView</span>
-        <span class="p">}</span>
-    <span class="p">}</span>
+  <span class="c1">// real-world metrics</span>
+  <span class="kd">func</span> <span class="nf">on</span><span class="p">(</span><span class="nv">width</span><span class="p">:</span> <span class="kt">Double</span><span class="p">,</span> <span class="nv">height</span><span class="p">:</span> <span class="kt">Double</span><span class="p">)</span>
 
-    <span class="c1">// the SDK may update the objects positions</span>
-    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didUpdateObjects</span> <span class="nv">objects</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasObject</span><span class="p">])</span> <span class="p">{</span>
-      <span class="n">objects</span><span class="o">.</span><span class="n">forEach</span> <span class="p">{</span>
-         <span class="k">let</span> <span class="nv">o</span> <span class="o">=</span> <span class="c1">// get node from sceneView with id = $0.id</span>
-         <span class="c1">// update its position</span>
-         <span class="n">o</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="nv">$0</span><span class="o">.</span><span class="n">position</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
+  <span class="c1">// after a successful masterAnchorScan.scan() call</span>
+  <span class="kd">func</span> <span class="nf">on</span><span class="p">(</span><span class="nv">image</span><span class="p">:</span> <span class="kt">ImageWithMetrics</span><span class="p">)</span>
 
-    <span class="c1">// intended to collect feedback from users</span>
-    <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didMatchRoomAndWantsFeedback</span> <span class="nv">callback</span><span class="p">:</span> <span class="p">(</span><span class="kt">UIViewController</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)</span> <span class="p">{</span>
-        <span class="nf">callback</span><span class="p">(</span><span class="k">self</span><span class="p">)</span>
-    <span class="p">}</span>
+  <span class="kd">func</span> <span class="nf">onReset</span><span class="p">()</span>
+  <span class="kd">func</span> <span class="nf">onNoRectangle</span><span class="p">()</span>
 
 <span class="p">}</span>
+</code></pre><h2 id='spatialcanvasroom'>SpatialCanvasRoom</h2>
+<p>Represents a created or restored room. It lets you add objects and notifies you whenever objects are added, found or updated.</p>
+<pre class="highlight swift tab-swift"><code><span class="k">weak</span> <span class="k">var</span> <span class="nv">delegate</span><span class="p">:</span> <span class="kt">SpatialCanvasRoomDelegate</span><span class="p">?</span>
 </code></pre>
-<p>Behaviour of the SDK:</p>
+<blockquote>
+<p>Delegate of the room. It will be notified when an object is found, added or updated. Objects are found only when restoring a room.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="k">let</span> <span class="nv">masterAnchor</span><span class="p">:</span> <span class="kt">MasterAnchor</span>
+</code></pre>
+<blockquote>
+<p>Master anchor object. It has an imageUrl property describing the scanned anchor object.</p>
+</blockquote>
+<pre class="highlight swift tab-swift"><code><span class="kd">func</span> <span class="nf">addObject</span><span class="p">(</span><span class="nv">position</span><span class="p">:</span> <span class="n">float3</span><span class="p">,</span> <span class="nv">eulerAngles</span><span class="p">:</span> <span class="n">float3</span><span class="p">,</span> <span class="nv">completion</span><span class="p">:</span> <span class="kt">Completion</span><span class="o">&lt;</span><span class="kt">Result</span><span class="o">&gt;</span><span class="p">?</span> <span class="o">=</span> <span class="kc">nil</span><span class="p">)</span>
+</code></pre>
+<blockquote>
+<p>Adds an object to the room in the given position and orientation. The object addition will be notified through the delegate.</p>
+</blockquote>
+<h2 id='spatialcanvasroomdelegate'>SpatialCanvasRoomDelegate</h2>
+<p>Notifies you whenever objects are added, found or updated.</p>
+<pre class="highlight swift tab-swift"><code><span class="kd">protocol</span> <span class="kt">SpatialCanvasRoomDelegate</span><span class="p">:</span> <span class="kd">class</span> <span class="p">{</span>
 
-<p>On first place, you need to query the available rooms by calling <code>SpatialCanvas.shared.getNearRooms</code> or <code>SpatialCanvas.shared.getAllRooms</code>. You may want to present a UI with the list of fetched rooms and let the user select one or create a new one if he wants.  </p>
+  <span class="c1">// objects were found after restoring a room and scanning the master anchor object</span>
+  <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didFindObjects</span> <span class="nv">objects</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasObject</span><span class="p">])</span>
 
-<p>If you create a new room from scratch, after a room scanning process, you can start adding objects to it in order to persist them. On the other hand, if you restore an existent one you will start a scanning process until the SDK notifies you that it found your objects.</p>
-<h2 id='components'>Components</h2>
-<p>Main components of the SDK:</p>
+  <span class="c1">// object was added to the room</span>
+  <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didAddObject</span> <span class="nv">object</span><span class="p">:</span> <span class="kt">SpatialCanvasObject</span><span class="p">)</span>
 
-<ul>
-<li>SpatialCanvas.shared instance:<br>
-The main entry point for the SDK. You should initialize it when your application launches, configure your ViewController as its delegate and use it to run an ARKit session.</li>
-<li>SpatialCanvasDelegate:<br>
-Delegate that extends the ARSessionDelegate.</li>
-<li>RoomScan:<br>
-Object that allows you to perform a scan of the room when creating a new room.</li>
-<li>SpatialCanvasRoom:<br>
-Object that represents a room. Lets you add persistent objects.</li>
-<li>SpatialCanvasRoomDelegate:<br>
-Notifies you whenever the room finds already persisted objects along with their ids and positions.</li>
-</ul>
+  <span class="c1">// objects already added or found were updated in the room</span>
+  <span class="kd">func</span> <span class="nf">spatialCanvasRoom</span><span class="p">(</span><span class="n">_</span> <span class="nv">spatialCanvasRoom</span><span class="p">:</span> <span class="kt">SpatialCanvasRoom</span><span class="p">,</span> <span class="n">didUpdateObjects</span> <span class="nv">objects</span><span class="p">:</span> <span class="p">[</span><span class="kt">SpatialCanvasObject</span><span class="p">])</span>
+
+<span class="p">}</span>
+</code></pre><h2 id='spatialcanvasroomdescriptor'>SpatialCanvasRoomDescriptor</h2>
+<p>Room descriptor.</p>
+<pre class="highlight swift tab-swift"><code><span class="kd">class</span> <span class="kt">SpatialCanvasRoomDescriptor</span><span class="p">:</span> <span class="kt">NSObject</span> <span class="p">{</span>
+
+    <span class="k">let</span> <span class="nv">id</span><span class="p">:</span> <span class="kt">String</span>
+    <span class="k">let</span> <span class="nv">name</span><span class="p">:</span> <span class="kt">String</span>
+
+<span class="p">}</span>
+</code></pre><h2 id='spatialcanvasobject'>SpatialCanvasObject</h2>
+<p>Represents an object being managed by the SDK.</p>
+<pre class="highlight swift tab-swift"><code><span class="kd">class</span> <span class="kt">SpatialCanvasObject</span> <span class="p">{</span>
+
+    <span class="k">let</span> <span class="nv">id</span><span class="p">:</span> <span class="kt">String</span>
+    <span class="k">let</span> <span class="nv">position</span><span class="p">:</span> <span class="n">float3</span>
+
+    <span class="c1">// orientation</span>
+    <span class="k">let</span> <span class="nv">eulerAngles</span><span class="p">:</span> <span class="n">float3</span>
+
+<span class="p">}</span>
+</code></pre><h1 id='example'>Example</h1>
+<p>In order to see an example of usage please visit <a href="https://github.com/spatialcanvas/spatialcanvas-ios">here</a>.</p>
 
       </div>
       <div class="dark-box">
